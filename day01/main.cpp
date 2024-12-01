@@ -1,6 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <vector>
+#include <map>
+#include <fmt/core.h>
 #include "../utils.h"
 
 class task
@@ -16,6 +19,7 @@ public:
     {
         std::cout << "Starting..." << std::endl;
         std::vector<int> left, right;
+        std::map<int, int> right_map;
 
         std::ifstream infile(file);
         int l, r;
@@ -23,6 +27,7 @@ public:
         {
             left.push_back(l);
             right.push_back(r);
+            ++right_map[r];
         }
         std::sort(left.begin(), left.end());
         std::sort(right.begin(), right.end());
@@ -30,14 +35,15 @@ public:
         auto it_left = left.cbegin();
         auto it_right = right.cbegin();
 
-        int distance = 0;
+        int distance = 0, similarity = 0;
         while (it_left != left.cend())
         {
             distance += std::abs(*it_left - *it_right);
+            similarity += *it_left * right_map[*it_left];
             it_left++;
             it_right++;
         }
-        return std::to_string(distance);
+        return fmt::format("distance - {}, similarity - {}", distance, similarity);
     }
 };
 
