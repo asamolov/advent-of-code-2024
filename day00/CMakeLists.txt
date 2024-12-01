@@ -2,3 +2,7 @@
 find_package(fmt CONFIG REQUIRED)
 target_link_libraries(day00 PRIVATE fmt::fmt)
 set_property(TARGET day00 PROPERTY CXX_STANDARD 20)
+file(GLOB INPUTS
+  "input*.txt"
+)
+file(COPY ${INPUTS} DESTINATION ".")
