@@ -1,14 +1,51 @@
 #include <iostream>
+#include <fstream>
 #include <filesystem>
+#include <fmt/core.h>
+#include "../utils.h"
+
+class task
+{
+private:
+    std::filesystem::path file;
+public:
+    task(const std::filesystem::path &input) : file(input)
+    {
+        std::cout << "Task input: " << file << std::endl;
+    }
+    std::string run()
+    {
+        std::cout << "Starting..." << std::endl;
+        std::ifstream infile(file);
+        std::string s;
+        int n = 0;
+        while (infile >> s)
+        {
+            n += s.size();
+        }
+        return fmt::format("n chars - {}", n);
+    }
+};
 
 int main(int argc, char *argv[])
 {
-    std::cout << "template" << std::endl;
+    std::cout << "Day00" << std::endl;
     std::cout << "Current path: " << std::filesystem::current_path() << std::endl;
     std::cout << "args:" << std::endl;
     for (int i = 0; i < argc; i++)
     {
         std::cout << '\t' << argv[i] << std::endl;
+    }
+    std::filesystem::path input;
+    if (ensure_input(argc, argv, input))
+    {
+        task task{input};
+        auto result = task.run();
+        std::cout << "Result: " << result << std::endl;
+    }
+    else
+    {
+        usage(argv[0]);
     }
     return 0;
 }
