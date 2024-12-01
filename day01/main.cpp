@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <filesystem>
 #include "../utils.h"
 
@@ -7,13 +8,36 @@ class task
 private:
     std::filesystem::path file;
 public:
-    task(const std::filesystem::path &input): file(input)
+    task(const std::filesystem::path &input) : file(input)
     {
         std::cout << "Task input: " << file << std::endl;
     }
-    void run()
+    std::string run()
     {
         std::cout << "Starting..." << std::endl;
+        std::vector<int> left, right;
+
+        std::ifstream infile(file);
+        int l, r;
+        while (infile >> l >> r)
+        {
+            left.push_back(l);
+            right.push_back(r);
+        }
+        std::sort(left.begin(), left.end());
+        std::sort(right.begin(), right.end());
+
+        auto it_left = left.cbegin();
+        auto it_right = right.cbegin();
+
+        int distance = 0;
+        while (it_left != left.cend())
+        {
+            distance += std::abs(*it_left - *it_right);
+            it_left++;
+            it_right++;
+        }
+        return std::to_string(distance);
     }
 };
 
@@ -30,7 +54,8 @@ int main(int argc, char *argv[])
     if (ensure_input(argc, argv, input))
     {
         task task{input};
-        task.run();
+        auto result = task.run();
+        std::cout << "Result: " << result << std::endl;
     }
     else
     {
