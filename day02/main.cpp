@@ -17,24 +17,29 @@ private:
     std::filesystem::path file;
     bool is_safe(const std::vector<int> &input, int exclude = -1)
     {
-        if (input.size() < 2) {
+        if (input.size() < 2)
+        {
             return false;
         }
         int prev_level = -1;
         int dir = 111;
-        for (auto it = input.cbegin(); it != input.cend(); ++it) {
+        for (auto it = input.cbegin(); it != input.cend(); ++it)
+        {
             // skip the exclude element
-            if (exclude == std::distance(input.cbegin(), it)) {
+            if (exclude == std::distance(input.cbegin(), it))
+            {
                 continue;
             }
             // first element
-            if (prev_level < 0) {
+            if (prev_level < 0)
+            {
                 prev_level = *it;
                 continue;
             }
             int delta = prev_level - *it;
             // second element
-            if (dir > 1) {
+            if (dir > 1)
+            {
                 dir = sgn(delta); // initial direction
             }
             // rest
@@ -45,6 +50,15 @@ private:
             prev_level = *it;
         }
         return true;
+    }
+    bool is_tolerated(const std::vector<int> &input)
+    {
+        for (int i = 0; i < input.size(); i++) {
+            if (is_safe(input, i)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 public:
@@ -57,18 +71,24 @@ public:
         std::cout << "Starting..." << std::endl;
         std::ifstream infile(file);
         std::string s;
-        int n = 0;
+        int safe = 0;
+        int tolerated = 0;
         while (std::getline(infile, s))
         {
             std::istringstream is(s);
             int level = 0;
             std::vector<int> levels;
-            while (is >> level) {
+            while (is >> level)
+            {
                 levels.push_back(level);
             }
-            n += is_safe(levels);
+            if (is_safe(levels)) {
+                safe++;
+            } else {
+                tolerated += is_tolerated(levels);
+            }
         }
-        return fmt::format("safe reports - {}", n);
+        return fmt::format("safe reports - {}, with tolerated - {}", safe, safe + tolerated);
     }
 };
 
