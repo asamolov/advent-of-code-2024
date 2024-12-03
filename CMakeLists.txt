@@ -9,8 +9,5 @@ endif()
 project(advent-of-code-2024)
 
 add_subdirectory(day00)
-add_custom_target(run00 COMMAND day00 DEPENDS day00 WORKING_DIRECTORY ${CMAKE_PROJECT_DIR})
 add_subdirectory(day01)
-add_custom_target(run01 COMMAND day01 DEPENDS day01 WORKING_DIRECTORY ${CMAKE_PROJECT_DIR})
 add_subdirectory(day02)
-add_custom_target(run02 COMMAND day02 DEPENDS day02 WORKING_DIRECTORY ${CMAKE_PROJECT_DIR})

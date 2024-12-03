@@ -1,8 +1,7 @@
-﻿add_executable (day01 "main.cpp" "../utils.h")
+﻿project(day01)
+add_executable (${PROJECT_NAME} "main.cpp" "../utils.h")
 find_package(fmt CONFIG REQUIRED)
-target_link_libraries(day01 PRIVATE fmt::fmt)
-set_property(TARGET day01 PROPERTY CXX_STANDARD 20)
-file(GLOB INPUTS
-  "input*.txt"
-)
+target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+file(GLOB INPUTS "input*.txt")
 file(COPY ${INPUTS} DESTINATION ".")
