@@ -19,7 +19,7 @@ public:
         std::ifstream infile(file);
         std::string s;
         int n = 0;
-        while (infile >> s)
+        while (std::getline(infile, s))
         {
             n += s.size();
         }
