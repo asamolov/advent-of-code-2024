@@ -18,27 +18,36 @@ public:
     }
     std::string run()
     {
-        std::regex expr("mul\\((\\d+),(\\d+)\\)");
+        std::regex expr("mul\\((\\d+),(\\d+)\\)|don't\\(\\)|do\\(\\)");
         std::cout << "Starting..." << std::endl;
         std::ifstream infile(file);
         std::string s;
         int n = 0;
+        int conditional = 0;
+        bool enabled = true;
         while (std::getline(infile, s))
         {
             auto it = std::sregex_iterator(s.begin(), s.end(), expr);
             for (decltype(it) end; it != end; ++it)
             {
                 auto match = *it;
-                n += std::stoi(match[1])*std::stoi(match[2]);
+                if ("don't()" == match.str()) { enabled = false; }
+                else if ("do()" == match.str()) { enabled = true; }
+                else
+                {
+                    int mul = std::stoi(match[1]) * std::stoi(match[2]);
+                    n += mul;
+                    conditional += enabled * mul;
+                }
             }
         }
-        return fmt::format("sum of mul's - {}", n);
+        return fmt::format("sum of mul's - {}, conditional - {}", n, conditional);
     }
 };
 
 int main(int argc, char *argv[])
 {
-    std::cout << "Day00" << std::endl;
+    std::cout << "Day03" << std::endl;
     std::cout << "Current path: " << std::filesystem::current_path() << std::endl;
     std::cout << "args:" << std::endl;
     for (int i = 0; i < argc; i++)
