@@ -14,6 +14,28 @@ class task
 private:
     const std::regex expr{"XMAS"};
     std::filesystem::path file;
+    int find_mas_x(const lines &input) {
+        int n = 0;
+        int max_row = input.size();
+        int max_col = input[0].size();
+        for (int row = 1; row < max_row - 1; row++) { 
+            for (int col = 1; col < max_col -1; col++) {
+                // searching for A's
+                if (input[row][col] == 'A') {
+                    // checking diagonales
+                    char tl = input[row-1][col-1]; // top left
+                    char tr = input[row-1][col+1]; // top right
+                    char bl = input[row+1][col-1]; // bottom left
+                    char br = input[row+1][col+1]; // bottom right
+                    if (((tl == 'M' && br == 'S')||(tl == 'S' && br == 'M'))
+                    &&  ((bl == 'M' && tr == 'S')||(bl == 'S' && tr == 'M'))) {
+                        n++;
+                    }
+                }
+            }
+        }
+        return n;
+    }
     int find_xmas(const lines &input) {
         auto end = std::sregex_iterator();
         auto revend = revsregex_iterator();
@@ -85,7 +107,7 @@ public:
         fmt::print("hor45 ({}):\n{}\n", find_xmas(hor45), fmt::join(hor45, "\n"));
         n += find_xmas(ver45); // vertical rotated
         fmt::print("ver45 ({}):\n{}\n", find_xmas(ver45), fmt::join(ver45, "\n"));
-        return fmt::format("n = {}", n);
+        return fmt::format("n = {}, mas-x = {}", n, find_mas_x(horizontal));
     }
 };
 
