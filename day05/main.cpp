@@ -7,7 +7,10 @@
 #include "../utils.h"
 #include <regex>
 #include <map>
+#include <set>
 #include <vector>
+
+struct rules;
 
 struct update
 {
@@ -16,6 +19,7 @@ struct update
     update(const std::string &line);
     bool in_order(int left, int right) const;
     int mid_page() const;
+    void fix_up(const rules &r);
 };
 
 struct rule
@@ -40,8 +44,10 @@ auto fmt::formatter<rule>::format(const rule &r, format_context &ctx) const
 struct rules
 {
     std::vector<rule> all;
+    std::set<std::pair<int, int>> idx;
     void add(const std::string &line);
     bool is_valid(const update &update);
+    bool operator()(const int &lhs, const int &rhs) const;
 };
 
 rule::rule(const std::string &line)
@@ -66,7 +72,8 @@ public:
         std::cout << "Starting..." << std::endl;
         std::ifstream infile(file);
         std::string s;
-        int n = 0;
+        int valid = 0;
+        int fixed = 0;
         rules r;
         // reading rules till empty line
         while (std::getline(infile, s) && !s.empty())
@@ -81,10 +88,15 @@ public:
             update upd(s);
             if (r.is_valid(upd))
             {
-                n += upd.mid_page();
+                valid += upd.mid_page();
+            }
+            else
+            {
+                upd.fix_up(r);
+                fixed += upd.mid_page();
             }
         }
-        return fmt::format("mid pages - {}", n);
+        return fmt::format("valid mid pages - {}, fixed mid pages - {}", valid, fixed);
     }
 };
 
@@ -113,7 +125,8 @@ int main(int argc, char *argv[])
 
 void rules::add(const std::string &line)
 {
-    all.emplace_back(line);
+    auto &r = all.emplace_back(line);
+    idx.insert({r.left, r.right});
 }
 
 bool rules::is_valid(const update &upd)
@@ -126,6 +139,11 @@ bool rules::is_valid(const update &upd)
         }
     }
     return true;
+}
+
+bool rules::operator()(const int &lhs, const int &rhs) const
+{
+    return idx.contains({lhs, rhs});
 }
 
 const std::regex digit("\\d+");
@@ -154,4 +172,14 @@ bool update::in_order(int left, int right) const
 int update::mid_page() const
 {
     return pages[pages.size() / 2];
+}
+
+void update::fix_up(const rules &r)
+{
+    std::stable_sort(pages.begin(), pages.end(), r);
+    positions.clear();
+    for (size_t i = 0; i < pages.size(); i++)
+    {
+        positions[pages[i]] = i;
+    }
 }
