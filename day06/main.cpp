@@ -5,6 +5,7 @@
 #include <fmt/ranges.h>
 #include "../utils.h"
 #include <set>
+#include <map>
 
 // row, col
 using point = std::pair<int, int>;
@@ -17,7 +18,8 @@ struct room
     int width, height;
     point guard;
     dir direction;
-    std::set<point> visited;
+    std::map<point, dir> visited;
+    bool found_loop;
     point o2p(int offset) const
     {
         return point{offset / width, offset % width};
@@ -53,7 +55,8 @@ struct room
             }
         }
         direction = {-1, 0};
-        visited.insert(guard);
+        visited[guard] = direction;
+        found_loop = false;
     }
     // false once the guard is about to leave the room
     bool move()
@@ -70,11 +73,20 @@ struct room
             }
             if (map[new_pos.first][new_pos.second] != '#')
             {
+                // check for loops
+                if (visited.contains(new_pos)) {
+                    if (visited.at(new_pos) == direction) {
+                        found_loop = true;
+                        return false;
+                    }
+                } else {
+                    visited[new_pos] = direction;
+                }
                 break;
             }
+            // hit obstacle
             rot();
         } while (true);
-        visited.insert(new_pos);
         map[guard.first][guard.second] = 'X';
         guard = new_pos;
         map[guard.first][guard.second] = '^';
@@ -103,6 +115,7 @@ public:
             map.push_back(s);
         }
         room r{map};
+        point guard{r.guard};
         int step = 0;
         do
         {
@@ -110,7 +123,19 @@ public:
             fmt::println("step {}", step);
             step++;
         } while (r.move());
-        return fmt::format("visited {}", r.visited.size());
+        std::map<point, dir> to_review{r.visited};
+        to_review.erase(guard);
+        fmt::println("reviewing {} positions to place and obstacle", to_review.size());
+        int obstacles = 0;
+        int checked = 0;
+        for (auto pt : to_review) {
+            room fixed{map};
+            fmt::println("Checking {} of {} obstacle place...", ++checked, to_review.size());
+            fixed.map[pt.first.first][pt.first.second] = '#'; // placing obstacle
+            while (fixed.move());
+            obstacles += fixed.found_loop;
+        }
+        return fmt::format("visited {}, places for obstacles {}", r.visited.size(), obstacles);
     }
 };
 
