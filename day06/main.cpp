@@ -104,8 +104,9 @@ public:
     {
         std::cout << "Task input: " << file << std::endl;
     }
-    std::string run()
+    void run()
     {
+        execution_timer timer;
         std::cout << "Starting..." << std::endl;
         std::ifstream infile(file);
         std::string s;
@@ -120,9 +121,10 @@ public:
         do
         {
             //fmt::println("step {}\n{}", step, fmt::join(r.map, "\n"));
-            fmt::println("step {}", step);
+            //fmt::println("step {}", step);
             step++;
         } while (r.move());
+        timer.stop("First run");
         std::map<point, dir> to_review{r.visited};
         to_review.erase(guard);
         fmt::println("reviewing {} positions to place and obstacle", to_review.size());
@@ -130,12 +132,12 @@ public:
         int checked = 0;
         for (auto pt : to_review) {
             room fixed{map};
-            fmt::println("Checking {} of {} obstacle place...", ++checked, to_review.size());
+            //fmt::println("Checking {} of {} obstacle place...", ++checked, to_review.size());
             fixed.map[pt.first.first][pt.first.second] = '#'; // placing obstacle
             while (fixed.move());
             obstacles += fixed.found_loop;
         }
-        return fmt::format("visited {}, places for obstacles {}", r.visited.size(), obstacles);
+        fmt::println("visited {}, places for obstacles {}", r.visited.size(), obstacles);
     }
 };
 
@@ -152,8 +154,7 @@ int main(int argc, char *argv[])
     if (ensure_input(argc, argv, input))
     {
         task task{input};
-        auto result = task.run();
-        std::cout << "Result: " << result << std::endl;
+        task.run();
     }
     else
     {
