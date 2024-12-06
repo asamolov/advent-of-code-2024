@@ -6,33 +6,38 @@
 #include "../utils.h"
 #include <set>
 #include <map>
+#include <unordered_map>
 
 // row, col
 using point = std::pair<int, int>;
 using dir = std::pair<int, int>;
+
+template<>
+struct std::hash<point>
+{
+    std::size_t operator()(const point& s) const noexcept
+    {
+        std::size_t h1 = std::hash<int>{}(s.first);
+        std::size_t h2 = std::hash<int>{}(s.second);
+        return h1 ^ (h2 << 1); // or use boost::hash_combine
+    }
+};
 
 struct room
 {
     const char G = '^';
     std::vector<std::string> map;
     int width, height;
-    point guard;
+    point guard, orig_guard;
     dir direction;
-    std::map<point, dir> visited;
+    std::unordered_map<point, dir> visited;
     bool found_loop;
-    point o2p(int offset) const
-    {
-        return point{offset / width, offset % width};
-    }
-    int p2o(const point &pt) const
-    {
-        return pt.first * width + pt.second;
-    }
-    point move(const point &pt, const dir &direction)
+    bool mark_path;
+    inline point move(const point &pt, const dir &direction)
     {
         return point{pt.first + direction.first, pt.second + direction.second};
     }
-    void rot()
+    inline void rot()
     {
         // up: -1, 0; down 1, 0; left 0, -1; right 0, 1
         // 90 cw rotation is achieved by multiplying direction vector by rotation matrix
@@ -40,7 +45,14 @@ struct room
         // [ -1 0 ] [ y ]
         direction = dir{direction.second, -direction.first};
     }
-    room(const std::vector<std::string> &map) : map(map)
+    void reset() {
+        direction = {-1, 0};
+        guard = orig_guard;
+        visited.clear();
+        visited[guard] = direction;
+        found_loop = false;
+    }
+    room(const std::vector<std::string> &map, bool mark_path = true) : map(map), mark_path(mark_path)
     {
         width = map[0].size();
         height = map.size();
@@ -50,13 +62,11 @@ struct room
             auto g_pos = it->find(G);
             if (g_pos != std::string::npos)
             {
-                guard = point{row, g_pos};
+                orig_guard = point{row, g_pos};
                 break;
             }
         }
-        direction = {-1, 0};
-        visited[guard] = direction;
-        found_loop = false;
+        reset();
     }
     // false once the guard is about to leave the room
     bool move()
@@ -87,9 +97,11 @@ struct room
             // hit obstacle
             rot();
         } while (true);
-        map[guard.first][guard.second] = 'X';
+        if (mark_path) {
+            map[guard.first][guard.second] = 'X';
+            map[new_pos.first][new_pos.second] = '^';
+        }
         guard = new_pos;
-        map[guard.first][guard.second] = '^';
         return true;
     }
 };
@@ -125,17 +137,19 @@ public:
             step++;
         } while (r.move());
         timer.stop("First run");
-        std::map<point, dir> to_review{r.visited};
+        std::unordered_map<point, dir> to_review{r.visited};
         to_review.erase(guard);
         fmt::println("reviewing {} positions to place and obstacle", to_review.size());
         int obstacles = 0;
         int checked = 0;
+        room fixed{map, false};
         for (auto pt : to_review) {
-            room fixed{map};
             //fmt::println("Checking {} of {} obstacle place...", ++checked, to_review.size());
             fixed.map[pt.first.first][pt.first.second] = '#'; // placing obstacle
             while (fixed.move());
             obstacles += fixed.found_loop;
+            fixed.map[pt.first.first][pt.first.second] = '.'; // removing obstacle
+            fixed.reset(); // resetting to avoid recalculating
         }
         fmt::println("visited {}, places for obstacles {}", r.visited.size(), obstacles);
     }
