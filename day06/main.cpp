@@ -12,10 +12,10 @@
 using point = std::pair<int, int>;
 using dir = std::pair<int, int>;
 
-template<>
+template <>
 struct std::hash<point>
 {
-    std::size_t operator()(const point& s) const noexcept
+    std::size_t operator()(const point &s) const noexcept
     {
         std::size_t h1 = std::hash<int>{}(s.first);
         std::size_t h2 = std::hash<int>{}(s.second);
@@ -30,9 +30,17 @@ struct room
     int width, height;
     point guard, orig_guard;
     dir direction;
-    std::unordered_map<point, dir> visited;
+    std::vector<dir> visited;
     bool found_loop;
     bool mark_path;
+    inline point o2p(int offset) const
+    {
+        return point{offset / width, offset % width};
+    }
+    inline int p2o(const point &pt) const
+    {
+        return pt.first * width + pt.second;
+    }
     inline point move(const point &pt, const dir &direction)
     {
         return point{pt.first + direction.first, pt.second + direction.second};
@@ -45,11 +53,12 @@ struct room
         // [ -1 0 ] [ y ]
         direction = dir{direction.second, -direction.first};
     }
-    void reset() {
+    void reset()
+    {
         direction = {-1, 0};
         guard = orig_guard;
-        visited.clear();
-        visited[guard] = direction;
+        std::fill(visited.begin(), visited.end(), dir{0, 0});
+        visited[p2o(guard)] = direction;
         found_loop = false;
     }
     room(const std::vector<std::string> &map, bool mark_path = true) : map(map), mark_path(mark_path)
@@ -66,6 +75,7 @@ struct room
                 break;
             }
         }
+        visited.resize(width * height); // set visited field to full map
         reset();
     }
     // false once the guard is about to leave the room
@@ -84,20 +94,26 @@ struct room
             if (map[new_pos.first][new_pos.second] != '#')
             {
                 // check for loops
-                if (visited.contains(new_pos)) {
-                    if (visited.at(new_pos) == direction) {
+                auto &d = visited[p2o(new_pos)];
+                if (d != dir{0, 0})
+                {
+                    if (d == direction)
+                    {
                         found_loop = true;
                         return false;
                     }
-                } else {
-                    visited[new_pos] = direction;
+                }
+                else
+                {
+                    d = direction;
                 }
                 break;
             }
             // hit obstacle
             rot();
         } while (true);
-        if (mark_path) {
+        if (mark_path)
+        {
             map[guard.first][guard.second] = 'X';
             map[new_pos.first][new_pos.second] = '^';
         }
@@ -132,26 +148,37 @@ public:
         int step = 0;
         do
         {
-            //fmt::println("step {}\n{}", step, fmt::join(r.map, "\n"));
-            //fmt::println("step {}", step);
+            // fmt::println("step {}\n{}", step, fmt::join(r.map, "\n"));
+            // fmt::println("step {}", step);
             step++;
         } while (r.move());
         timer.stop("First run");
-        std::unordered_map<point, dir> to_review{r.visited};
-        to_review.erase(guard);
+        std::vector<dir> to_review{r.visited};
+        to_review[r.p2o(guard)] = dir{0, 0}; // remove guard
         fmt::println("reviewing {} positions to place and obstacle", to_review.size());
         int obstacles = 0;
         int checked = 0;
         room fixed{map, false};
-        for (auto pt : to_review) {
-            //fmt::println("Checking {} of {} obstacle place...", ++checked, to_review.size());
-            fixed.map[pt.first.first][pt.first.second] = '#'; // placing obstacle
-            while (fixed.move());
-            obstacles += fixed.found_loop;
-            fixed.map[pt.first.first][pt.first.second] = '.'; // removing obstacle
-            fixed.reset(); // resetting to avoid recalculating
+        int visited = 0;
+        auto it = to_review.begin();
+        for (int row = 0; row < r.height; row++)
+        {
+            for (int col = 0; col < r.width; col++, ++it)
+            {
+                // fmt::println("Checking {} of {} obstacle place...", ++checked, to_review.size());
+                if (dir{0, 0} == *it)
+                {
+                    continue;
+                }
+                fixed.map[row][col] = '#'; // placing obstacle
+                while (fixed.move());
+                obstacles += fixed.found_loop;
+                fixed.map[row][col] = '.'; // removing obstacle
+                fixed.reset();             // resetting to avoid recalculating
+                visited++;
+            }
         }
-        fmt::println("visited {}, places for obstacles {}", r.visited.size(), obstacles);
+        fmt::println("visited {}, places for obstacles {}", visited + 1, obstacles);
     }
 };
 
