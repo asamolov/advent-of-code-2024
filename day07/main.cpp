@@ -30,7 +30,7 @@ public:
 
 int main(int argc, char *argv[])
 {
-    std::cout << "Day00" << std::endl;
+    std::cout << "Day07" << std::endl;
     std::cout << "Current path: " << std::filesystem::current_path() << std::endl;
     std::cout << "args:" << std::endl;
     for (int i = 0; i < argc; i++)
