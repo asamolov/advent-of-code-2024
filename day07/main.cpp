@@ -33,7 +33,9 @@ public:
         ++from;
         if (sum % a == 0)
         {
-            result |= check_exp(sum / a, from, till);
+            if (check_exp(sum / a, from, till)) {
+                return true;
+            }
         }
         // check if it ends by current element
         if (use_concat) {
@@ -42,12 +44,13 @@ public:
             if (str_sum.ends_with(str_curr)) {
                 str_sum.resize(str_sum.size() - str_curr.size());
                 if (!str_sum.empty()) {
-                    result |= check_exp(std::stoll(str_sum), from, till);
+                    if (check_exp(std::stoll(str_sum), from, till)) {
+                        return true;
+                    }
                 }
             }
         }
-        result |= check_exp(sum - a, from, till);
-        return result;
+        return check_exp(sum - a, from, till);
     }
     auto check_line(const std::string &line)
     {
@@ -60,14 +63,14 @@ public:
         {
             expr.push_back(i);
         }
-        fmt::print("Checking {} against {}", result, expr);
+        //fmt::print("Checking {} against {}", result, expr);
         // checking from the back
         if (check_exp(result, expr.crbegin(), expr.crend()))
         {
-            fmt::println(" <- correct!");
+            //fmt::println(" <- correct!");
             return result;
         }
-        fmt::println("");
+        //fmt::println("");
         return 0LL;
     }
     void run()
