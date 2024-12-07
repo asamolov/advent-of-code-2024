@@ -10,9 +10,9 @@ class task
 {
 private:
     std::filesystem::path file;
-
+    bool use_concat;
 public:
-    task(const std::filesystem::path &input) : file(input)
+    task(const std::filesystem::path &input, bool use_concat = false) : file(input), use_concat(use_concat)
     {
         std::cout << "Task input: " << file << std::endl;
     }
@@ -35,6 +35,17 @@ public:
         {
             result |= check_exp(sum / a, from, till);
         }
+        // check if it ends by current element
+        if (use_concat) {
+            auto str_sum = std::to_string(sum);
+            auto str_curr = std::to_string(a);
+            if (str_sum.ends_with(str_curr)) {
+                str_sum.resize(str_sum.size() - str_curr.size());
+                if (!str_sum.empty()) {
+                    result |= check_exp(std::stoll(str_sum), from, till);
+                }
+            }
+        }
         result |= check_exp(sum - a, from, till);
         return result;
     }
@@ -49,10 +60,10 @@ public:
         {
             expr.push_back(i);
         }
-
-        fmt::print("Checking {} agains {}", result, expr);
+        fmt::print("Checking {} against {}", result, expr);
         // checking from the back
-        if (check_exp(result, expr.crbegin(), expr.crend())) {
+        if (check_exp(result, expr.crbegin(), expr.crend()))
+        {
             fmt::println(" <- correct!");
             return result;
         }
@@ -86,8 +97,10 @@ int main(int argc, char *argv[])
     std::filesystem::path input;
     if (ensure_input(argc, argv, input))
     {
-        task task{input};
-        task.run();
+        task part1{input};
+        part1.run();
+        task part2{input, true};
+        part2.run();
     }
     else
     {
