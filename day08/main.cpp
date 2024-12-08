@@ -69,12 +69,19 @@ public:
                         continue;
                     }
                     // find antinode symmetrical it -> ot -> antinode
-                    auto anti_row = 2 * other.first - node.first;
-                    auto anti_col = 2 * other.second - node.second;
-
-                    if (anti_row >= 0 && anti_row < height && anti_col >= 0 && anti_col < width)
-                    {
-                        antinodes[anti_row][anti_col] = '#';
+                    auto d_row = other.first - node.first;
+                    auto d_col = other.second - node.second;
+                    auto anti_row = node.first;
+                    auto anti_col = node.second;
+                    while (true) {
+                        anti_row += d_row;
+                        anti_col += d_col;
+                        if (anti_row >= 0 && anti_row < height && anti_col >= 0 && anti_col < width)
+                        {
+                            antinodes[anti_row][anti_col] = '#';
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
