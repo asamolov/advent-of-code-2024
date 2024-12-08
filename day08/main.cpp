@@ -29,7 +29,6 @@ public:
         std::vector<std::string> antinodes;
         std::set<char> keys;
         std::multimap<char, point> nodes;
-        int n = 0;
         while (std::getline(infile, s))
         {
             for (size_t i = 0; i < s.size(); i++)
