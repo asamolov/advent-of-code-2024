@@ -14,6 +14,14 @@ public:
     {
         std::cout << "Task input: " << file << std::endl;
     }
+    bool is_free(size_t file)
+    {
+        return file % 2 == 1;
+    }
+    bool is_file(size_t file)
+    {
+        return file % 2 == 0;
+    }
     void run()
     {
         execution_timer timer;
@@ -49,32 +57,75 @@ public:
             }
         }
 
-        // moving stuff around
-        size_t back = output.size() - 1;
-        while (output[back] == std::numeric_limits<size_t>::max())
-        {
-            back--;
-        }
+        std::vector<size_t> defrag{output};
+        std::vector<bool> moved(defrag.size(), false);
 
-        for (size_t front = 0; front < back; front++)
+        // moving stuff around part 1
         {
-            if (output[front] == std::numeric_limits<size_t>::max())
+            size_t back = output.size() - 1;
+            while (output[back] == std::numeric_limits<size_t>::max())
             {
-                output[front] = output[back];
-                output[back] = std::numeric_limits<size_t>::max();
-                while (output[back] == std::numeric_limits<size_t>::max()) // pull back
+                back--;
+            }
+
+            for (size_t front = 0; front < back; front++)
+            {
+                if (output[front] == std::numeric_limits<size_t>::max())
                 {
-                    back--;
+                    output[front] = output[back];
+                    output[back] = std::numeric_limits<size_t>::max();
+                    while (output[back] == std::numeric_limits<size_t>::max()) // pull back
+                    {
+                        back--;
+                    }
                 }
             }
         }
 
-        unsigned long long alt_checksum = 0;
-        // checksum
-        for (size_t i = 0; i < output.size() - 1 && output[i] != std::numeric_limits<size_t>::max(); i++)
+        // defrag
         {
-            alt_checksum += i * output[i];
+            int back = defrag.size() - 1; // pull back up
+            while (back > 0)
+            {
+                while (back > 0 && (free_space(defrag, back) || moved[back]))
+                {
+                    back--;
+                }
+                if (back == 0)
+                {
+                    break;
+                }
+                // found a file
+                size_t file = defrag[back];
+                size_t file_size = disk_map[file * 2];
+                // searching for a gap
+                for (size_t i = 0; i < back; i++)
+                {
+                    size_t free_size = 0;
+                    size_t free_start = i;
+                    while (free_space(defrag, i))
+                    {
+                        free_size++;
+                        i++;
+                    }
+                    if (free_size >= file_size)
+                    {
+                        // can move file
+                        std::fill_n(defrag.begin() + free_start, file_size, file);
+                        std::fill_n(moved.begin() + free_start, file_size, true);
+                        std::fill_n(defrag.begin() + back - file_size + 1, file_size, std::numeric_limits<size_t>::max());
+                        //print_disk(defrag);
+                        break;
+                    }
+                }
+                back-= file_size;
+            }
         }
+
+        //print_disk(defrag);
+
+        unsigned long long alt_checksum = alt_chksum(output);
+        unsigned long long defrag_checksum = alt_chksum(defrag);
 
         // iterating both back and forward
         unsigned long long checksum = 0;
@@ -113,7 +164,35 @@ public:
         // remainder
         checksum += chksum(back_file, remainder, block);
 
-        fmt::println("checksum {}, alt {}", checksum, alt_checksum);
+        fmt::println("checksum {}, alt {}, defrag {}", checksum, alt_checksum, defrag_checksum);
+    }
+    void print_disk(std::vector<size_t> &defrag)
+    {
+        for (auto ch : defrag)
+        {
+            if (ch == std::numeric_limits<size_t>::max())
+                std::cout << ".";
+            else
+                std::cout << ch;
+        }
+        std::cout << std::endl;
+    }
+    bool free_space(std::vector<size_t> &defrag, size_t back)
+    {
+        return defrag[back] == std::numeric_limits<size_t>::max();
+    }
+    unsigned long long alt_chksum(const std::vector<size_t> &output)
+    {
+        // checksum
+        unsigned long long alt_checksum = 0;
+        for (size_t i = 0; i < output.size() - 1; i++)
+        {
+            if (output[i] != std::numeric_limits<size_t>::max())
+            {
+                alt_checksum += i * output[i];
+            }
+        }
+        return alt_checksum;
     }
     unsigned long long chksum(size_t file, size_t take, unsigned long long block)
     {
