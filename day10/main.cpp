@@ -53,7 +53,7 @@ public:
         if (visited[offset]) {
             return 0;
         }
-        visited[offset] = true;
+        //visited[offset] = true;
         if (ch == '9') {
             return 1;
         }
