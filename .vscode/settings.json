@@ -75,6 +75,7 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "regex": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "random": "cpp"
     }
 }
