@@ -4,7 +4,7 @@
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 #include "../utils.h"
-#include "BigInt.hpp"
+#include "../BigInt.hpp"
 #include <list>
 #include <map>
 
