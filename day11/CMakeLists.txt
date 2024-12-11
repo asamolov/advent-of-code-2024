@@ -1,5 +1,5 @@
 ﻿project(day11)
-add_executable (${PROJECT_NAME} "main.cpp" "../utils.h")
+add_executable (${PROJECT_NAME} "main.cpp" "../utils.h" "BigInt.hpp")
 find_package(fmt CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
