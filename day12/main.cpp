@@ -4,15 +4,19 @@
 #include <fmt/core.h>
 #include "../utils.h"
 #include <map>
+#include <vector>
+#include <algorithm>
 
 // row, col
 using point = std::pair<int, int>;
 using dir = std::pair<int, int>;
+using borders = std::map<std::pair<int, bool>, std::vector<int>>;
 
 struct region
 {
     int area;
     int perimeter;
+    int sides;
 };
 
 class task
@@ -23,6 +27,7 @@ private:
     std::vector<char> map;
     std::vector<bool> visited;
     std::map<std::pair<char,int>, region> regions;
+    std::map<std::pair<char,int>, borders> allborders;
 
 public:
     // up: -1, 0; down 1, 0; left 0, -1; right 0, 1
@@ -46,13 +51,13 @@ public:
     {
         return pt.first >= 0 && pt.first < height && pt.second >= 0 && pt.second < width;
     }
-    int flood(const point &pos, char expect, region &r)
+    bool flood(const point &pos, char expect, region &r, borders &b)
     {
         if (!valid(pos))
         {
             // hit the border of the map
             r.perimeter++;
-            return 0;
+            return true;
         }
         auto offset = p2o(pos);
         auto ch = map[offset];
@@ -60,21 +65,32 @@ public:
         {
             // hit the border with other region
             r.perimeter++;
-            return 0;
+            return true;
         }
         if (visited[offset])
         {
             // been there
-            return 0;
+            return false;
         }
         visited[offset] = true;
         r.area++;
-        int found = 0;
-        found += flood(move(pos, left), expect, r);
-        found += flood(move(pos, right), expect, r);
-        found += flood(move(pos, up), expect, r);
-        found += flood(move(pos, down), expect, r);
-        return found;
+        point pt = move(pos, left);
+        if (flood(pt, expect, r, b)) {
+            b[std::pair{pos.second * 2 - 1, true}].push_back(-pt.first);
+        }
+        pt = move(pos, right);
+        if (flood(pt, expect, r, b)) {
+            b[std::pair{pos.second * 2 + 1, true}].push_back(pt.first);
+        }
+        pt = move(pos, up);
+        if (flood(pt, expect, r, b)) {
+            b[std::pair{pos.first * 2 - 1, false}].push_back(-pt.second);
+        }
+        pt = move(pos, down);
+        if (flood(pt, expect, r, b)) {
+            b[std::pair{pos.first * 2 + 1, false}].push_back(pt.second);
+        }
+        return false;
     }
     task(const std::filesystem::path &input) : file(input)
     {
@@ -105,13 +121,33 @@ public:
             }
             int start = std::distance(visited.cbegin(), it);
             char ch = map[start];
-            flood(o2p(start), ch, regions[std::pair{ch, start}]);
+            std::pair<char, int> r{ch, start};
+            auto &reg = regions[r];
+            auto &brdr = allborders[r];
+            flood(o2p(start), ch, reg, brdr);
+            // count sides
+            for (auto &b : brdr) {
+                // looking for continious border
+                auto &line = b.second;
+                std::sort(line.begin(), line.end());
+                int prev = line.front();
+                for (auto p : line) {
+                    prev++;
+                    if (p != prev) {
+                        // new segment
+                        reg.sides++;
+                        prev = p;
+                    }
+                }
+            }
         }
         long price = 0;
+        long discounted = 0;
         for (auto &r : regions) {
             price += r.second.area * r.second.perimeter;
+            discounted += r.second.area * r.second.sides;
         }
-        fmt::println("price - {}", price);
+        fmt::println("price - {}, discounted - {}", price, discounted);
     }
 };
 
