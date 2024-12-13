@@ -3,12 +3,40 @@
 #include <filesystem>
 #include <fmt/core.h>
 #include "../utils.h"
+#include <regex>
+
+const std::regex button("Button \\w: X+(\\d+), Y+(\\d+)");
+const std::regex prize("Prize: X=(\\d+), Y=(\\d+)");
+const std::regex coords(".+X.(\\d+), Y.(\\d+)");
+
+using point = std::pair<int, int>;
 
 class task
 {
 private:
     std::filesystem::path file;
 public:
+    point take(const std::string &s) {
+        std::smatch match;
+        std::regex_match(s, match, coords);
+        return point{std::stoi(match[1]), std::stoi(match[2])};
+    }
+    int solve(point first, point second, point result) {
+        int det = first.first * second.second - first.second * second.first;
+        if (det == 0) {
+            fmt::println("Det = 0!");
+            return 0;
+        }
+        int det1 = result.first * second.second - result.second * second.first;
+        int det2 = first.first * result.second - first.second * result.first;
+        int a = det1 / det;
+        int b = det2 / det;
+        if (det1 % det == 0 && det2 % det == 0 && a >= 0 && a <= 100 && b >= 0 && b <= 100) {
+        return 3*a + b;
+
+        }
+        return 0;
+    }
     task(const std::filesystem::path &input) : file(input)
     {
         std::cout << "Task input: " << file << std::endl;
@@ -19,10 +47,17 @@ public:
         std::cout << "Starting..." << std::endl;
         std::ifstream infile(file);
         std::string s;
+        std::vector<point> pts;
         int n = 0;
         while (std::getline(infile, s))
         {
-            n += s.size();
+            point first = take(s);
+            std::getline(infile, s);
+            point second = take(s);
+            std::getline(infile, s);
+            point result = take(s);
+            std::getline(infile, s); // empty
+            n+= solve(first, second, result);
         }
         fmt::println("n chars - {}", n);
     }
