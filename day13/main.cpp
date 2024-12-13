@@ -9,7 +9,7 @@ const std::regex button("Button \\w: X+(\\d+), Y+(\\d+)");
 const std::regex prize("Prize: X=(\\d+), Y=(\\d+)");
 const std::regex coords(".+X.(\\d+), Y.(\\d+)");
 
-using point = std::pair<int, int>;
+using point = std::pair<long long, long long>;
 
 class task
 {
@@ -21,17 +21,17 @@ public:
         std::regex_match(s, match, coords);
         return point{std::stoi(match[1]), std::stoi(match[2])};
     }
-    int solve(point first, point second, point result) {
-        int det = first.first * second.second - first.second * second.first;
+    long long solve(point first, point second, point result) {
+        long long det = first.first * second.second - first.second * second.first;
         if (det == 0) {
             fmt::println("Det = 0!");
             return 0;
         }
-        int det1 = result.first * second.second - result.second * second.first;
-        int det2 = first.first * result.second - first.second * result.first;
-        int a = det1 / det;
-        int b = det2 / det;
-        if (det1 % det == 0 && det2 % det == 0 && a >= 0 && a <= 100 && b >= 0 && b <= 100) {
+        long long det1 = result.first * second.second - result.second * second.first;
+        long long det2 = first.first * result.second - first.second * result.first;
+        long long a = det1 / det;
+        long long b = det2 / det;
+        if (det1 % det == 0 && det2 % det == 0 && a >= 0 && b >= 0 /*&& a <= 100  && b <= 100*/) {
         return 3*a + b;
 
         }
@@ -48,7 +48,7 @@ public:
         std::ifstream infile(file);
         std::string s;
         std::vector<point> pts;
-        int n = 0;
+        long long n = 0;
         while (std::getline(infile, s))
         {
             point first = take(s);
@@ -56,6 +56,8 @@ public:
             point second = take(s);
             std::getline(infile, s);
             point result = take(s);
+            result.first += 10000000000000;
+            result.second += 10000000000000;
             std::getline(infile, s); // empty
             n+= solve(first, second, result);
         }
