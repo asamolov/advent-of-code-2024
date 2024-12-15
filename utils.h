@@ -24,6 +24,77 @@ bool ensure_input(int argc, char *argv[], std::filesystem::path &input)
     return false;
 }
 
+namespace aoc
+{
+    template <typename T = int>
+    struct point
+    {
+        T row;
+        T col;
+        point() : row(), col() {}
+        point(const T &row, const T &col) : row(row), col(col) {}
+        constexpr bool operator==(const point &other) const
+        {
+            return row == other.row && col == other.col;
+        }
+        friend bool operator<(const point &lhs, const point &rhs)
+        {
+            if (lhs.row == rhs.row) {
+                return lhs.col < rhs.col;
+            }
+            return lhs.row < rhs.row;
+        }
+    };
+    struct dir
+    {
+        int d_row;
+        int d_col;
+        dir() : d_row(0), d_col(0) {}
+        dir(int d_row, int d_col) : d_row(d_row), d_col(d_col) {}
+        template <typename T = int>
+        point<T> move(const point<T> &pt) const
+        {
+            return point{pt.row + d_row, pt.col + d_col};
+        }
+        dir rot90cw()
+        {
+            // up: -1, 0; down 1, 0; left 0, -1; right 0, 1
+            // 90 cw rotation is achieved by multiplying direction vector by rotation matrix
+            // [ 0  1 ] [ x ]
+            // [ -1 0 ] [ y ]
+            return dir{d_col, -d_row};
+        }
+        dir reverse() const
+        {
+            return dir{-d_row, -d_col};
+        }
+        constexpr bool operator==(const dir &other) const
+        {
+            return d_row == other.d_row && d_col == other.d_col;
+        }
+        static dir from_ch(const char &ch);
+    };
+    const dir UP{-1, 0};
+    const dir DOWN{1, 0};
+    const dir LEFT{0, -1};
+    const dir RIGHT{0, 1};
+    dir aoc::dir::from_ch(const char &ch)
+    {
+        switch (ch)
+        {
+        case '^':
+            return UP;
+        case 'v':
+            return DOWN;
+        case '<':
+            return LEFT;
+        case '>':
+            return RIGHT;
+        }
+        return dir(0, 0);
+    }
+};
+
 template <class Resolution = std::chrono::milliseconds>
 class execution_timer
 {
@@ -35,8 +106,10 @@ public:
 private:
     const clock::time_point start = clock::now();
     const std::string fn;
+
 public:
-    execution_timer(const std::source_location& location = std::source_location::current()) : fn(location.function_name()) {
+    execution_timer(const std::source_location &location = std::source_location::current()) : fn(location.function_name())
+    {
     }
     ~execution_timer()
     {
