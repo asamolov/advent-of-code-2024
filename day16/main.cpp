@@ -64,24 +64,31 @@ struct room
     }
     void visit(const point &pt, int distance, const dir &direction)
     {
-        visited[p2o(pt)] = distance;
-        map[pt.row][pt.col] = direction;
+        auto &d = visited[p2o(pt)];
+        if (distance < d)
+        {
+            d = distance;
+            map[pt.row][pt.col] = direction;
+        }
     }
     inline bool has_visited_faster(const point &pt, int dist) const
     {
         return visited[p2o(pt)] >= 0 && visited[p2o(pt)] <= dist;
     }
-    int shortest_path()
+    std::pair<int, int> shortest_path()
     {
-        std::fill(visited.begin(), visited.end(), -1);
+        std::fill(visited.begin(), visited.end(), std::numeric_limits<int>::max());
         using tpl = std::tuple<int, point, point, dir>;
-        std::map<std::pair<point, point>, int> passed_edges; 
+        std::map<std::pair<point, point>, int> passed_edges;
         std::priority_queue<tpl, std::vector<tpl>, std::greater<tpl>> to_visit;
         to_visit.push({0, deer, deer, direction});
         int step = 0;
+        point end;
+        int min_dist = std::numeric_limits<int>::max();
         while (!to_visit.empty())
         {
-            if (step % 1000 == 0) {
+            if (step % 1000 == 0)
+            {
                 fmt::println("Step {}...", step);
                 print();
             }
@@ -89,9 +96,15 @@ struct room
             auto curr = to_visit.top();
             to_visit.pop();
             auto [dist, prev_pt, pt, curr_dir] = curr;
+            if (dist > min_dist)
+            {
+                continue;
+            }
             auto key = std::pair{prev_pt, pt};
-            if (passed_edges.contains(key)) {
-                if (passed_edges[key] <= dist) {
+            if (passed_edges.contains(key))
+            {
+                if (passed_edges[key] <= dist)
+                {
                     continue;
                 }
             }
@@ -100,7 +113,10 @@ struct room
             case 'E':
                 fmt::println("Reached end at step {}...", step);
                 print();
-                return dist;
+                end = pt;
+                min_dist = std::min(min_dist, dist);
+                passed_edges[key] = dist;
+                continue;
             case '#':
                 continue;
             case 'S':
@@ -117,9 +133,43 @@ struct room
                 to_visit.emplace(dist + 1001, pt, curr_dir.rot90ccw().move(pt), curr_dir.rot90ccw());
                 break;
             };
-        };
+        }
 
-        return -1;
+        // deconstructing best paths
+
+        std::map<point, int> path_nodes;
+        path_nodes[end] = min_dist;
+        point curr = end;
+        int dist = min_dist;
+        std::priority_queue<tpl, std::vector<tpl>, std::greater<tpl>> to_visit_back;
+        to_visit_back.emplace(dist, curr, aoc::UP.move(curr), aoc::UP);
+        to_visit_back.emplace(dist, curr, aoc::DOWN.move(curr), aoc::DOWN);
+        to_visit_back.emplace(dist, curr, aoc::LEFT.move(curr), aoc::LEFT);
+        to_visit_back.emplace(dist, curr, aoc::RIGHT.move(curr), aoc::RIGHT);
+
+        while (!to_visit_back.empty())
+        {
+            auto curr = to_visit_back.top();
+            to_visit_back.pop();
+            auto [dist, prev_pt, pt, curr_dir] = curr;
+            auto key = std::pair{pt, prev_pt};
+
+            if (passed_edges.contains(key))
+            {
+                if (passed_edges[key] == dist)
+                {
+                    path_nodes[pt] = dist;
+                    to_visit_back.emplace(dist - 1, pt, curr_dir.move(pt), curr_dir);
+                    to_visit_back.emplace(dist - 1001, pt, curr_dir.move(pt), curr_dir);
+                    to_visit_back.emplace(dist - 1, pt, curr_dir.rot90cw().move(pt), curr_dir.rot90cw());
+                    to_visit_back.emplace(dist - 1001, pt, curr_dir.rot90cw().move(pt), curr_dir.rot90cw());
+                    to_visit_back.emplace(dist - 1, pt, curr_dir.rot90ccw().move(pt), curr_dir.rot90ccw());
+                    to_visit_back.emplace(dist - 1001, pt, curr_dir.rot90ccw().move(pt), curr_dir.rot90ccw());
+                }
+            }
+        }
+
+        return {min_dist, path_nodes.size()};
     }
 
     void print()
@@ -132,7 +182,7 @@ struct room
         {
             fmt::println("{}", r);
         }
-        //std::cin.get();
+        // std::cin.get();
     }
 };
 
@@ -160,7 +210,8 @@ public:
             map.push_back(s);
         }
         room r{map};
-        fmt::println("path - {}", r.shortest_path());
+        auto result = r.shortest_path();
+        fmt::println("path - {}, best places - {}", result.first, result.second);
     }
 };
 
