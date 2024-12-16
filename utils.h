@@ -39,10 +39,19 @@ namespace aoc
         }
         friend bool operator<(const point &lhs, const point &rhs)
         {
-            if (lhs.row == rhs.row) {
+            if (lhs.row == rhs.row)
+            {
                 return lhs.col < rhs.col;
             }
             return lhs.row < rhs.row;
+        }
+        friend constexpr std::strong_ordering operator<=>(const point &lhs, const point &rhs)
+        {
+            if (lhs.row < rhs.row or (lhs.row == rhs.row and lhs.col < rhs.col))
+                return std::strong_ordering::less;
+            if (lhs.row > rhs.row or (lhs.row == rhs.row and lhs.col > rhs.col))
+                return std::strong_ordering::greater;
+            return std::strong_ordering::equivalent;
         }
     };
     struct dir
@@ -64,6 +73,14 @@ namespace aoc
             // [ -1 0 ] [ y ]
             return dir{d_col, -d_row};
         }
+        dir rot90ccw()
+        {
+            // up: -1, 0; down 1, 0; left 0, -1; right 0, 1
+            // 90 ccw rotation is achieved by multiplying direction vector by rotation matrix
+            // [ 0  -1 ] [ x ]
+            // [ 1 0 ] [ y ]
+            return dir{-d_col, d_row};
+        }
         dir reverse() const
         {
             return dir{-d_row, -d_col};
@@ -73,6 +90,16 @@ namespace aoc
             return d_row == other.d_row && d_col == other.d_col;
         }
         static dir from_ch(const char &ch);
+        operator char() const;
+
+        friend constexpr std::strong_ordering operator<=>(const dir &lhs, const dir &rhs)
+        {
+            if (lhs.d_row < rhs.d_row or (lhs.d_row == rhs.d_row and lhs.d_col < rhs.d_col))
+                return std::strong_ordering::less;
+            if (lhs.d_row > rhs.d_row or (lhs.d_row == rhs.d_row and lhs.d_col > rhs.d_col))
+                return std::strong_ordering::greater;
+            return std::strong_ordering::equivalent;
+        }
     };
     const dir UP{-1, 0};
     const dir DOWN{1, 0};
@@ -92,6 +119,14 @@ namespace aoc
             return RIGHT;
         }
         return dir(0, 0);
+    }
+    inline dir::operator char() const
+    {
+        if (d_row == -1 && d_col ==  0) return '^';
+        if (d_row ==  1 && d_col ==  0) return 'v';
+        if (d_row ==  0 && d_col ==  1) return '>';
+        if (d_row ==  0 && d_col == -1) return '<';
+        return ' ';
     }
 };
 

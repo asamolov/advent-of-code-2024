@@ -76,6 +76,10 @@
         "xutility": "cpp",
         "regex": "cpp",
         "set": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "deque": "cpp",
+        "queue": "cpp",
+        "ranges": "cpp",
+        "span": "cpp"
     }
 }
