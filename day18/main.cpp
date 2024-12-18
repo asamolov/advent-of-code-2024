@@ -17,6 +17,8 @@ struct room
     std::vector<std::string> map;
     size_t width, height;
     std::vector<bool> _visited;
+    std::map<point, point> path;
+
     inline point o2p(size_t offset) const
     {
         return point{offset / width, offset % width};
@@ -42,9 +44,10 @@ struct room
     {
         return map[pt.row][pt.col];
     }
-    inline void corrupt(const point &pt)
+    inline bool corrupt(const point &pt)
     {
         map[pt.row][pt.col] = '#';
+        return path.contains(pt);
     }
     void visit(const point &pt)
     {
@@ -65,7 +68,7 @@ struct room
         point finish{height - 1, width - 1};
         std::fill(_visited.begin(), _visited.end(), false);
         std::queue<std::pair<point, size_t>> frontier;
-        std::map<point, point> parent;
+        path.clear();
         frontier.push({start, 0});
         visit(start);
         for (; !frontier.empty(); frontier.pop())
@@ -92,7 +95,7 @@ struct room
                 if (valid(next) && !visited(next) && can_go(next))
                 {
                     visit(next);
-                    parent[next] = pt;
+                    path[next] = pt;
                     frontier.emplace(next, distance + 1);
                 }
             }
@@ -132,7 +135,7 @@ public:
         std::smatch match;
         int n = 0;
         room r{71, 71};
-        //room r{7, 7};
+        // room r{7, 7};
         while (std::getline(infile, s) && n < 1024)
         {
             if (std::regex_match(s, match, byte_exp))
@@ -146,7 +149,6 @@ public:
         r.print();
         fmt::println("shortest path - {}", r.find_path());
 
-        
         while (std::getline(infile, s))
         {
             if (std::regex_match(s, match, byte_exp))
@@ -154,13 +156,16 @@ public:
                 size_t col = std::stoi(match[1]);
                 size_t row = std::stoi(match[2]);
                 // the code below asks for 'cut off' condition
-                //  - recalculating path only if the corruption hit the previous path. 
+                //  - recalculating path only if the corruption hit the previous path.
                 // however, it runs 1.3s in release mode so I'm fine with that :)
-                r.corrupt({row, col});
-                if (r.find_path() == std::numeric_limits<size_t>::max()) {
-                    r.print();
-                    fmt::println("path broken by - {},{}", col, row);
-                    break;
+                if (r.corrupt({row, col})) // recalculating only if hit the path
+                {
+                    if (r.find_path() == std::numeric_limits<size_t>::max())
+                    {
+                        r.print();
+                        fmt::println("path broken by - {},{}", col, row);
+                        break;
+                    }
                 }
             }
         }
