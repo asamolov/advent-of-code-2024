@@ -46,14 +46,15 @@ struct computer
     regfile regs;
     std::vector<uint8_t> output;
     std::vector<std::function<void(uint8_t)>> i_map;
-    computer(reg a, reg b, reg c, std::string &s)
+    computer(reg a, reg b, reg c, const std::string &s)
     {
         regs.a = a;
         regs.b = b;
         regs.c = c;
         for (auto ch : s)
         {
-            if (ch == ',') {
+            if (ch == ',')
+            {
                 continue;
             }
             instructions.push_back((ch - '0') & 0b111);
@@ -154,19 +155,46 @@ private:
     std::filesystem::path file;
 
 public:
-    reg take_reg(std::ifstream &in) {
+    reg take_reg(std::ifstream &in)
+    {
         std::smatch match;
         std::string s;
         std::getline(in, s);
         std::regex_match(s, match, register_line);
         return std::stoull(match[1]);
     }
-    std::string take_program(std::ifstream &in) {
+    std::string take_program(std::ifstream &in)
+    {
         std::smatch match;
         std::string s;
         std::getline(in, s);
         std::regex_match(s, match, program_line);
         return match[1];
+    }
+    bool iterate(reg a, const std::string &program)
+    {
+        reg b{0}, c{0};
+        computer cmp{a, b, c, program};
+        int idx_out = 0;
+        while (cmp.step())
+        {
+            if (cmp.output.size() > idx_out)
+            {
+                // got new output
+                if (idx_out == cmp.instructions.size())
+                {
+                    // too much output
+                    break;
+                }
+                if (cmp.output[idx_out] != cmp.instructions[idx_out])
+                {
+                    // output don't match
+                    break;
+                }
+                idx_out++;
+            }
+        }
+        return std::equal(cmp.output.cbegin(), cmp.output.cend(), cmp.instructions.cbegin(), cmp.instructions.cend());
     }
     task(const std::filesystem::path &input) : file(input)
     {
@@ -185,9 +213,21 @@ public:
         c = take_reg(infile);
         std::getline(infile, s);
         std::string program = take_program(infile);
-        computer cmp{a, b, c,program};
-        while (cmp.step());
+        computer cmp{a, b, c, program};
+        while (cmp.step())
+            ;
         cmp.print();
+
+        a = 0;
+        do
+        {
+            a++;
+            if (a % 10000 == 0) {
+                fmt::println("Step {}...", a);
+            }
+        } while (!iterate(a, program));
+        fmt::println("Regiser A: {}", a);
+        // part 2
     }
 };
 

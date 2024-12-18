@@ -5,4 +5,3 @@ target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 file(GLOB INPUTS "input*.txt")
 file(COPY ${INPUTS} DESTINATION ".")
-
