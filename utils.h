@@ -105,6 +105,7 @@ namespace aoc
     const dir DOWN{1, 0};
     const dir LEFT{0, -1};
     const dir RIGHT{0, 1};
+    const dir ALL_DIRS[] = {UP, DOWN, LEFT, RIGHT};
     dir aoc::dir::from_ch(const char &ch)
     {
         switch (ch)
