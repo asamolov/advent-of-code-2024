@@ -47,7 +47,8 @@ struct room
     inline bool corrupt(const point &pt)
     {
         map[pt.row][pt.col] = '#';
-        return path.contains(pt);
+        //return path.contains(pt);
+        return true;
     }
     void visit(const point &pt)
     {
@@ -95,7 +96,7 @@ struct room
                 if (valid(next) && !visited(next) && can_go(next))
                 {
                     visit(next);
-                    path[next] = pt;
+                    //path[next] = pt;
                     frontier.emplace(next, distance + 1);
                 }
             }
