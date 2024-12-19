@@ -77,7 +77,7 @@ struct computer
         fmt::println("IP: {}", ip);
         regs.print();
         fmt::println("OUT: {}", fmt::join(output, ","));
-        fmt::println("{}", std::string{10, '='});
+        fmt::println("{}", std::string(30, '-'));
     }
 
     reg decode(uint8_t op)
@@ -171,34 +171,38 @@ public:
         std::regex_match(s, match, program_line);
         return match[1];
     }
-    bool iterate(reg a, const std::string &program)
-    {
-        reg b{0}, c{0};
-        computer cmp{a, b, c, program};
-        int idx_out = 0;
-        while (cmp.step())
-        {
-            if (cmp.output.size() > idx_out)
-            {
-                // got new output
-                if (idx_out == cmp.instructions.size())
-                {
-                    // too much output
-                    break;
-                }
-                if (cmp.output[idx_out] != cmp.instructions[idx_out])
-                {
-                    // output don't match
-                    break;
-                }
-                idx_out++;
-            }
-        }
-        return std::equal(cmp.output.cbegin(), cmp.output.cend(), cmp.instructions.cbegin(), cmp.instructions.cend());
-    }
     task(const std::filesystem::path &input) : file(input)
     {
         std::cout << "Task input: " << file << std::endl;
+    }
+    reg find_next_a(size_t idx, reg a, const std::vector<uint8_t> &expected, const std::string &program)
+    {
+        if (idx == 0)
+        {
+            // found it
+            return a;
+        }
+        else
+        {
+            idx--;
+            auto what = expected[idx];
+            for (reg i = 0; i < 8; i++)
+            {
+                reg curr_a = a << 3 | (i & 0b111);
+                computer solve{curr_a, 0, 0, program};
+                while (solve.step())
+                    ;
+                if (solve.output.front() == what) // if found what we need
+                {
+                    auto found = find_next_a(idx, curr_a, expected, program); // going deep
+                    if (found != 0)
+                    {
+                        return found;
+                    }
+                }
+            }
+        }
+        return 0;
     }
     void run()
     {
@@ -218,16 +222,27 @@ public:
             ;
         cmp.print();
 
-        a = 0;
-        do
-        {
-            a++;
-            if (a % 10000 == 0) {
-                fmt::println("Step {}...", a);
-            }
-        } while (!iterate(a, program));
-        fmt::println("Regiser A: {}", a);
-        // part 2
+        // hardcoding solver based on the program in the input.
+        // Program: 2,4,1,7,7,5,0,3,4,4,1,7,5,5,3,0
+        // assembly-like
+        // --------------------------------------
+        // bst a ; 2,4 -- b = a & 0b111
+        // bxl 7 ; 1,7 -- b^= 0b111
+        // cdv b ; 7,5 -- c = a >> b
+        // adv 3 ; 0,3 -- a >>= 3
+        // bxc   ; 4,4 -- b ^= c
+        // bxl 7 ; 1,7 -- b ^= 0b111
+        // out b ; 5,5 -- print b & 0b111
+        // jnz 0 ; 3,0 -- jnz start:
+        // --------------------------------------
+        // attempt 3
+        // look for A value from the back
+        a = find_next_a(cmp.instructions.size(), 0, cmp.instructions, program);
+        fmt::println("Starting A: {}", a);
+        computer solve{a, 0, 0, program};
+        while (solve.step())
+            ;
+        solve.print();
     }
 };
 
