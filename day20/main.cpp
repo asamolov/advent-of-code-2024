@@ -81,6 +81,43 @@ struct room
             return std::max(0, to_dist - from_dist - 2);
         }
     }
+    inline int check_distance(const point &from, const point &to, int cheat_size) {
+        if (!valid(to)) {
+            return 0;
+        }
+        auto from_dist = _visited[p2o(from)];
+        auto to_dist = _visited[p2o(to)];
+        if (to_dist == -1)
+        {
+            return 0;
+        }
+        return std::max(0, to_dist - from_dist - cheat_size); 
+    }
+    inline int cheat_in_radius(std::map<int, uint64_t> &cheats, const point &pt, unsigned int radius)
+    {
+        // can start cheating?
+        if (_visited[p2o(pt)] == -1)
+        {
+            return 0;
+        }
+        // looking for point with distance more than radius
+        for (int i = 1; i <= radius; i++)
+        {
+            // i + j <= radius
+            for (int j = 1; j <= radius - i; j++) {
+                // checking +-i, +-j
+                cheats[check_distance(pt, dir{ i,  j}.move(pt), i+j)]++;
+                cheats[check_distance(pt, dir{-i,  j}.move(pt), i+j)]++;
+                cheats[check_distance(pt, dir{ i, -j}.move(pt), i+j)]++;
+                cheats[check_distance(pt, dir{-i, -j}.move(pt), i+j)]++;
+            }
+            // axis are treated separately
+            cheats[check_distance(pt, dir{ i,  0}.move(pt), i)]++;
+            cheats[check_distance(pt, dir{-i,  0}.move(pt), i)]++;
+            cheats[check_distance(pt, dir{ 0,  i}.move(pt), i)]++;
+            cheats[check_distance(pt, dir{ 0, -i}.move(pt), i)]++;
+        }
+    }
     void visit(const point &pt, int distance)
     {
         _visited[p2o(pt)] = distance;
@@ -183,19 +220,40 @@ public:
                 }
             }
         }
+        // part 2
+        // cheating in radius 20 cells.
+        // starting from 
+        std::map<int, uint64_t> huge_cheats;
+        
+        for (size_t i = 1; i < r.height - 1; i++)
+        {
+            for (size_t j = 1; j < r.width - 1; j++)
+            {
+                r.cheat_in_radius(huge_cheats, point{i, j}, 20);
+            }
+        }
 
         int major_gains = 0;
         int total_gains = 0;
         for (auto [gain, count] : gains)
         {
-            fmt::println("Gained {}: {} times", gain, count);
+            // fmt::println("Gained {}: {} times", gain, count);
             if (gain >= 100)
             {
                 major_gains += count;
             }
             total_gains += count;
         }
-        fmt::println("full_path - {}, all_gains - {}, major gains - {}", full_path, total_gains - gains[0], major_gains);
+        uint64_t huge_gains = 0;
+        for (auto [gain, count] : huge_cheats)
+        {
+            if (gain >= 100)
+            {
+                fmt::println("Radius gained {}: {} times", gain, count);
+                huge_gains += count;
+            }
+        }
+        fmt::println("full_path - {}, all_gains - {}, major gains - {}, huge gains - {}", full_path, total_gains - gains[0], major_gains, huge_gains);
     }
 };
 
