@@ -15,8 +15,9 @@ struct room
 {
     std::vector<std::string> map;
     size_t width, height;
-    std::vector<bool> _visited;
+    std::vector<int> _visited;
     std::map<point, point> path;
+    point start, finish;
 
     inline point o2p(size_t offset) const
     {
@@ -34,29 +35,60 @@ struct room
     {
         return map[pt.row][pt.col] == '.';
     }
-    room(size_t width, size_t height) : width(width), height(height)
+    room(const std::vector<std::string> &map) : map(map)
     {
-        map.resize(height, std::string(width, '.'));
-        _visited.resize(width * height, false);
+        height = map.size();
+        width = map[0].size();
+        size_t row = 0;
+        for (auto it = map.begin(); it != map.end(); ++it, row++)
+        {
+            auto pos = it->find('S');
+            if (pos != std::string::npos)
+            {
+                start = point{row, pos};
+                break;
+            }
+            else
+            {
+                pos = it->find('E');
+                if (pos != std::string::npos)
+                {
+                    finish = point{row, pos};
+                }
+            }
+        }
+        _visited.resize(width * height, -1);
     }
     inline char at(const point &pt) const
     {
         return map[pt.row][pt.col];
     }
-    inline bool corrupt(const point &pt)
+    inline int cheat(const point &pt, const dir &from, const dir &to)
     {
-        map[pt.row][pt.col] = '#';
-        //return path.contains(pt);
-        return true;
+        // can cheat?
+        if (_visited[p2o(pt)] != -1 || from == to)
+        {
+            return 0;
+        }
+        auto from_dist = _visited[p2o(from.move(pt))];
+        auto to_dist = _visited[p2o(to.move(pt))];
+        if (from_dist == -1 || to_dist == -1)
+        {
+            return 0;
+        }
+        else
+        {
+            return std::max(0, to_dist - from_dist - 2);
+        }
     }
-    void visit(const point &pt)
+    void visit(const point &pt, int distance)
     {
-        _visited[p2o(pt)] = true;
+        _visited[p2o(pt)] = distance;
         map[pt.row][pt.col] = ' ';
     }
     bool visited(const point &pt) const
     {
-        return _visited[p2o(pt)];
+        return _visited[p2o(pt)] >= 0;
     }
     bool can_go(const point &pt) const
     {
@@ -64,13 +96,11 @@ struct room
     }
     auto find_path()
     {
-        point start{0, 0};
-        point finish{height - 1, width - 1};
-        std::fill(_visited.begin(), _visited.end(), false);
+        std::fill(_visited.begin(), _visited.end(), -1);
         std::queue<std::pair<point, size_t>> frontier;
         path.clear();
         frontier.push({start, 0});
-        visit(start);
+        visit(start, 0);
         for (; !frontier.empty(); frontier.pop())
         {
             auto [pt, distance] = frontier.front();
@@ -94,8 +124,8 @@ struct room
                 auto next = d.move(pt);
                 if (valid(next) && !visited(next) && can_go(next))
                 {
-                    visit(next);
-                    //path[next] = pt;
+                    visit(next, distance + 1);
+                    // path[next] = pt;
                     frontier.emplace(next, distance + 1);
                 }
             }
@@ -116,11 +146,11 @@ struct room
     }
 };
 
-
 class task
 {
 private:
     std::filesystem::path file;
+
 public:
     task(const std::filesystem::path &input) : file(input)
     {
@@ -132,12 +162,40 @@ public:
         std::cout << "Starting..." << std::endl;
         std::ifstream infile(file);
         std::string s;
-        int n = 0;
+        std::vector<std::string> map;
+        std::map<int, int> gains;
         while (std::getline(infile, s))
         {
-            n += s.size();
+            map.push_back(s);
         }
-        fmt::println("n chars - {}", n);
+        room r{map};
+        auto full_path = r.find_path();
+        for (size_t i = 1; i < r.height - 1; i++)
+        {
+            for (size_t j = 1; j < r.width - 1; j++)
+            {
+                for (dir from : aoc::ALL_DIRS)
+                {
+                    for (dir to : aoc::ALL_DIRS)
+                    {
+                        gains[r.cheat(point{i, j}, from, to)]++;
+                    }
+                }
+            }
+        }
+
+        int major_gains = 0;
+        int total_gains = 0;
+        for (auto [gain, count] : gains)
+        {
+            fmt::println("Gained {}: {} times", gain, count);
+            if (gain >= 100)
+            {
+                major_gains += count;
+            }
+            total_gains += count;
+        }
+        fmt::println("full_path - {}, all_gains - {}, major gains - {}", full_path, total_gains - gains[0], major_gains);
     }
 };
 
