@@ -16,7 +16,6 @@ struct room
     std::vector<std::string> map;
     size_t width, height;
     std::vector<int> _visited;
-    std::map<point, point> path;
     point start, finish;
 
     inline point o2p(size_t offset) const
@@ -46,7 +45,6 @@ struct room
             if (pos != std::string::npos)
             {
                 start = point{row, pos};
-                break;
             }
             else
             {
@@ -63,26 +61,10 @@ struct room
     {
         return map[pt.row][pt.col];
     }
-    inline int cheat(const point &pt, const dir &from, const dir &to)
+    inline int check_distance(const point &from, const point &to, int cheat_size)
     {
-        // can cheat?
-        if (_visited[p2o(pt)] != -1 || from == to)
+        if (!valid(to))
         {
-            return 0;
-        }
-        auto from_dist = _visited[p2o(from.move(pt))];
-        auto to_dist = _visited[p2o(to.move(pt))];
-        if (from_dist == -1 || to_dist == -1)
-        {
-            return 0;
-        }
-        else
-        {
-            return std::max(0, to_dist - from_dist - 2);
-        }
-    }
-    inline int check_distance(const point &from, const point &to, int cheat_size) {
-        if (!valid(to)) {
             return 0;
         }
         auto from_dist = _visited[p2o(from)];
@@ -91,7 +73,7 @@ struct room
         {
             return 0;
         }
-        return std::max(0, to_dist - from_dist - cheat_size); 
+        return std::max(0, to_dist - from_dist - cheat_size);
     }
     inline int cheat_in_radius(std::map<int, uint64_t> &cheats, const point &pt, unsigned int radius)
     {
@@ -104,18 +86,19 @@ struct room
         for (int i = 1; i <= radius; i++)
         {
             // i + j <= radius
-            for (int j = 1; j <= radius - i; j++) {
+            for (int j = 1; j <= radius - i; j++)
+            {
                 // checking +-i, +-j
-                cheats[check_distance(pt, dir{ i,  j}.move(pt), i+j)]++;
-                cheats[check_distance(pt, dir{-i,  j}.move(pt), i+j)]++;
-                cheats[check_distance(pt, dir{ i, -j}.move(pt), i+j)]++;
-                cheats[check_distance(pt, dir{-i, -j}.move(pt), i+j)]++;
+                cheats[check_distance(pt, dir{i, j}.move(pt), i + j)]++;
+                cheats[check_distance(pt, dir{-i, j}.move(pt), i + j)]++;
+                cheats[check_distance(pt, dir{i, -j}.move(pt), i + j)]++;
+                cheats[check_distance(pt, dir{-i, -j}.move(pt), i + j)]++;
             }
             // axis are treated separately
-            cheats[check_distance(pt, dir{ i,  0}.move(pt), i)]++;
-            cheats[check_distance(pt, dir{-i,  0}.move(pt), i)]++;
-            cheats[check_distance(pt, dir{ 0,  i}.move(pt), i)]++;
-            cheats[check_distance(pt, dir{ 0, -i}.move(pt), i)]++;
+            cheats[check_distance(pt, dir{i, 0}.move(pt), i)]++;
+            cheats[check_distance(pt, dir{-i, 0}.move(pt), i)]++;
+            cheats[check_distance(pt, dir{0, i}.move(pt), i)]++;
+            cheats[check_distance(pt, dir{0, -i}.move(pt), i)]++;
         }
     }
     void visit(const point &pt, int distance)
@@ -135,7 +118,6 @@ struct room
     {
         std::fill(_visited.begin(), _visited.end(), -1);
         std::queue<std::pair<point, size_t>> frontier;
-        path.clear();
         frontier.push({start, 0});
         visit(start, 0);
         for (; !frontier.empty(); frontier.pop())
@@ -143,17 +125,6 @@ struct room
             auto [pt, distance] = frontier.front();
             if (pt == finish)
             {
-                // mark path
-                // point head = pt;
-                // map[head.row][head.col] = 'O';
-
-                // while (parent.contains(head))
-                // {
-                //     head = parent[head];
-                //     map[head.row][head.col] = 'O';
-                // }
-                // fmt::println("Found path from start to finish");
-                // print();
                 return distance;
             }
             for (dir d : aoc::ALL_DIRS)
@@ -162,7 +133,6 @@ struct room
                 if (valid(next) && !visited(next) && can_go(next))
                 {
                     visit(next, distance + 1);
-                    // path[next] = pt;
                     frontier.emplace(next, distance + 1);
                 }
             }
@@ -171,15 +141,10 @@ struct room
     }
     void print()
     {
-        // if (height > 10)
-        // {
-        //     return;
-        // }
         for (auto &r : map)
         {
             fmt::println("{}", r);
         }
-        // std::cin.get();
     }
 };
 
@@ -207,35 +172,22 @@ public:
         }
         room r{map};
         auto full_path = r.find_path();
-        for (size_t i = 1; i < r.height - 1; i++)
-        {
-            for (size_t j = 1; j < r.width - 1; j++)
-            {
-                for (dir from : aoc::ALL_DIRS)
-                {
-                    for (dir to : aoc::ALL_DIRS)
-                    {
-                        gains[r.cheat(point{i, j}, from, to)]++;
-                    }
-                }
-            }
-        }
-        // part 2
-        // cheating in radius 20 cells.
-        // starting from 
+        // both part 1 & part 2 can be solved with the same approach
+        // cheating in radius 2 and 20 cells.
         std::map<int, uint64_t> huge_cheats;
-        
+        std::map<int, uint64_t> small_cheats;
         for (size_t i = 1; i < r.height - 1; i++)
         {
             for (size_t j = 1; j < r.width - 1; j++)
             {
+                r.cheat_in_radius(small_cheats, point{i, j}, 2);
                 r.cheat_in_radius(huge_cheats, point{i, j}, 20);
             }
         }
 
-        int major_gains = 0;
-        int total_gains = 0;
-        for (auto [gain, count] : gains)
+        uint64_t major_gains = 0;
+        uint64_t total_gains = 0;
+        for (auto [gain, count] : small_cheats)
         {
             // fmt::println("Gained {}: {} times", gain, count);
             if (gain >= 100)
