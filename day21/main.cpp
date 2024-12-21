@@ -27,6 +27,7 @@ private:
     std::map<char, point> num_map;
     std::map<char, point> dir_map;
     size_t width = 3;
+    std::map<std::tuple<char, char, int>, uint64_t> cache;
 
 public:
     inline point o2p(size_t offset) const
@@ -50,6 +51,55 @@ public:
         }
 
         std::cout << "Task input: " << file << std::endl;
+    }
+    uint64_t cached_dir_path(const std::string &line, int iterations)
+    {
+        char from = 'A';
+        uint64_t total_len = 0;
+        for (auto ch : line)
+        {
+            total_len += cached_dir_path_iter(from, ch, iterations);
+            from = ch;
+        }
+        return total_len;
+    }
+    uint64_t cached_dir_path_iter(char chcurr, char chnext, int iteration)
+    {
+        if (iteration == 0) {
+            return 1;
+        }
+        auto key = std::tie(chcurr, chnext, iteration);
+        if (cache.contains(key)) {
+            return cache[key];
+        }
+        point curr = dir_map[chcurr];
+        point next = dir_map[chnext];
+        
+        dir dist = next - curr;
+
+        // no optimising & allowing to hover 'failed' one
+        auto ver = std::string(std::abs(dist.d_row), dist.d_row > 0 ? 'v' : '^');
+        auto hor = std::string(std::abs(dist.d_col), dist.d_col > 0 ? '>' : '<');
+        std::string result;
+        // how we throw away the unreacheable one?
+        if (curr.col == 0 && next.row == 0) { // hor, ver
+            result = hor + ver + "A";
+        } else if (next.col == 0 && curr.row == 0) { // ver, hor
+            result = ver + hor + "A";
+        } else  if (dist.d_col < 0) { // prioritize '<' over other
+            result = hor + ver + "A";
+        } else {
+            result = ver + hor + "A";
+        }
+        uint64_t total_len = 0;
+        char from = 'A';
+        for (auto ch : result)
+        {
+            total_len += cached_dir_path_iter(from, ch, iteration - 1);
+            from = ch;
+        }
+        cache[key] = total_len;
+        return total_len;
     }
     std::string naive_num_path(char chcurr, char chnext)
     {
@@ -115,6 +165,7 @@ public:
         std::ifstream infile(file);
         std::string s;
         int complexity = 0;
+        uint64_t big_complexity = 0;
         while (std::getline(infile, s))
         {
             // iterating
@@ -132,8 +183,9 @@ public:
             std::string third_path = full_dir_path(second_path);
             fmt::println("3: {}", third_path);
             complexity += std::stoi(s)*third_path.size();
+            big_complexity += std::stoi(s)*cached_dir_path(first_path, 25);
         }
-        fmt::println("complexity {}", complexity);
+        fmt::println("complexity {}, big complexity {}", complexity, big_complexity);
     }
 };
 
