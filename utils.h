@@ -26,6 +26,7 @@ bool ensure_input(int argc, char *argv[], std::filesystem::path &input)
 
 namespace aoc
 {
+    struct dir;
     template <typename T = int>
     struct point
     {
@@ -45,6 +46,9 @@ namespace aoc
             }
             return lhs.row < rhs.row;
         }
+        dir operator-(const point &rhs) const;
+        friend point operator-(const point &pt, const dir &dir);
+        friend point operator+(const point &pt, const dir &dir);
         friend constexpr std::strong_ordering operator<=>(const point &lhs, const point &rhs)
         {
             if (lhs.row < rhs.row or (lhs.row == rhs.row and lhs.col < rhs.col))
@@ -64,6 +68,10 @@ namespace aoc
         point<T> move(const point<T> &pt) const
         {
             return point{pt.row + d_row, pt.col + d_col};
+        }
+        int abs() const
+        {
+            return std::abs(d_row) + std::abs(d_col);
         }
         dir rot90cw()
         {
@@ -106,6 +114,24 @@ namespace aoc
     const dir LEFT{0, -1};
     const dir RIGHT{0, 1};
     const dir ALL_DIRS[] = {UP, DOWN, LEFT, RIGHT};
+
+    template <typename T>
+    inline dir point<T>::operator-(const point<T> &rhs) const
+    {
+        return dir{static_cast<int>(this->row - rhs.row), static_cast<int>(this->col - rhs.col)};
+    }
+
+    template <typename T = int>
+    inline point<T> operator-(const point<T> &pt, const dir &dir)
+    {
+        return {pt.row - dir.d_row, pt.col - dir.d_col};
+    }
+    template <typename T = int>
+    inline point<T> operator+(const point<T> &pt, const dir &dir)
+    {
+        return {pt.row + dir.d_row, pt.col + dir.d_col};
+    }
+
     dir aoc::dir::from_ch(const char &ch)
     {
         switch (ch)
@@ -123,10 +149,14 @@ namespace aoc
     }
     inline dir::operator char() const
     {
-        if (d_row == -1 && d_col ==  0) return '^';
-        if (d_row ==  1 && d_col ==  0) return 'v';
-        if (d_row ==  0 && d_col ==  1) return '>';
-        if (d_row ==  0 && d_col == -1) return '<';
+        if (d_row == -1 && d_col == 0)
+            return '^';
+        if (d_row == 1 && d_col == 0)
+            return 'v';
+        if (d_row == 0 && d_col == 1)
+            return '>';
+        if (d_row == 0 && d_col == -1)
+            return '<';
         return ' ';
     }
 };
