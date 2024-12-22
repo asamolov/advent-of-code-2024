@@ -8,7 +8,16 @@ class task
 {
 private:
     std::filesystem::path file;
+
 public:
+    uint32_t pseudo_random(uint32_t input, uint8_t iteration)
+    {
+        auto expanded_input = static_cast<uint64_t>(input);
+        expanded_input = ((expanded_input << 6) ^ expanded_input) & ((1 << 24) - 1);
+        expanded_input = ((expanded_input >> 5) ^ expanded_input) & ((1 << 24) - 1);
+        expanded_input = ((expanded_input << 11) ^ expanded_input) & ((1 << 24) - 1);
+        return static_cast<uint32_t>(expanded_input);
+    }
     task(const std::filesystem::path &input) : file(input)
     {
         std::cout << "Task input: " << file << std::endl;
@@ -19,12 +28,19 @@ public:
         std::cout << "Starting..." << std::endl;
         std::ifstream infile(file);
         std::string s;
-        int n = 0;
+        uint64_t n = 0;
         while (std::getline(infile, s))
         {
-            n += s.size();
+            uint32_t t = std::stoul(s);
+            uint32_t rnd = t;
+            for (int i = 0; i < 2000; i++)
+            {
+                rnd = pseudo_random(rnd, i);
+            }
+            fmt::println("{}: {}", t, rnd);
+            n += rnd;
         }
-        fmt::println("n chars - {}", n);
+        fmt::println("sum - {}", n);
     }
 };
 
