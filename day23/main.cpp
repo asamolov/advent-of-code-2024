@@ -2,6 +2,7 @@
 #include <fstream>
 #include <filesystem>
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 #include "../utils.h"
 
 #include <regex>
@@ -12,7 +13,7 @@
 
 const std::regex conn_exp{"(\\w+)-(\\w+)"};
 
-using lan = std::array<std::string, 3>;
+using lan = std::set<std::string>;
 
 class task
 {
@@ -60,13 +61,53 @@ public:
                     if (a.front() == 't' || b.front() == 't' || c.front() == 't')
                     {
                         lan l{a, b, c};
-                        std::sort(l.begin(), l.end());
                         lans.insert(l);
                     }
                 }
             }
         }
         fmt::println("lans - {}", lans.size());
+
+        std::vector<lan> cliques;
+        size_t max_clique = 0;
+        size_t max_clique_idx = 0;
+        // building cliques
+        for (auto &conn : conns)
+        {
+            // for all connections
+            while (!conn.second.empty())
+            {
+                // build cliques
+                lan clique{conn.first};
+                auto candidates = conn.second;
+                while (!candidates.empty())
+                {
+                    auto node = candidates.extract(candidates.begin());
+                    // add node to clique
+                    clique.insert(node.value());
+                    // taking this node and it's childs
+                    auto &childs = conns[node.value()];
+                    // keeping only intersections
+                    lan new_candidates;
+                    std::set_intersection(candidates.begin(), candidates.end(), childs.begin(), childs.end(),
+                                          std::inserter(new_candidates, new_candidates.end()));
+                    candidates.swap(new_candidates);
+                }
+                for (auto &member : clique)
+                {
+                    // for each clique member removing all connections in this clique
+                    std::erase_if(conns[member], [&](const std::string &what)
+                                  { return clique.contains(what); });
+                }
+                if (clique.size() > max_clique)
+                {
+                    max_clique = clique.size();
+                    max_clique_idx = cliques.size();
+                }
+                cliques.push_back(clique);
+            }
+        }
+        fmt::println("max clique - {}: {}", max_clique, fmt::join(cliques[max_clique_idx], ","));
     }
 };
 
